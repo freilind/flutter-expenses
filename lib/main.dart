@@ -48,6 +48,22 @@ class _MyHomePageState extends State<MyHomePage> {
 
   bool _showChart = false;
 
+  /*void initState() {
+    super.initState();
+    WidgetsBinding.instance?.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print(state);
+  }
+
+  @override
+  dispose() {
+    WidgetsBinding.instance?.removeObserver(this);
+    super.dispose();
+  }*/
+
   List<Transaction> get _recentTransactions {
     return _userTransactions.where((trx) {
       return trx.date.isAfter(DateTime.now().subtract(Duration(days: 7)));
@@ -78,6 +94,51 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
+  List<Widget> _buildLandscapeContent(MediaQueryData mediaQuery,
+      PreferredSizeWidget appBar, Widget trxListWidget) {
+    return [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            'Show chart',
+            style: Theme.of(context).textTheme.headline6,
+          ),
+          Switch.adaptive(
+            activeColor: Theme.of(context).accentColor,
+            value: _showChart,
+            onChanged: (val) {
+              setState(() {
+                _showChart = val;
+              });
+            },
+          )
+        ],
+      ),
+      _showChart
+          ? Container(
+              height: (mediaQuery.size.height -
+                      appBar.preferredSize.height -
+                      mediaQuery.padding.top) *
+                  .7,
+              child: Chart(recentTransactions: _recentTransactions))
+          : trxListWidget
+    ];
+  }
+
+  List<Widget> _buildPortraitContent(MediaQueryData mediaQuery,
+      PreferredSizeWidget appBar, Widget trxListWidget) {
+    return [
+      Container(
+          height: (mediaQuery.size.height -
+                  appBar.preferredSize.height -
+                  mediaQuery.padding.top) *
+              .3,
+          child: Chart(recentTransactions: _recentTransactions)),
+      trxListWidget
+    ];
+  }
+
   void _deleteTransaction(String id) {
     setState(() {
       _userTransactions.removeWhere((trx) => trx.id == id);
@@ -88,6 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     final _MEDIA_QUERY = MediaQuery.of(context);
     final _IS_LAND_SCAPE = _MEDIA_QUERY.orientation == Orientation.landscape;
+
     final PreferredSizeWidget _APP_BAR = Platform.isIOS
         ? CupertinoNavigationBar(
             middle: Text('Personal Expenses'),
@@ -106,6 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   onPressed: () => _startAddNewTransaction(context),
                 )
               ]);
+
     final _TRX_LIST_WIDGET = Container(
       height: (_MEDIA_QUERY.size.height -
               _APP_BAR.preferredSize.height -
@@ -114,47 +177,16 @@ class _MyHomePageState extends State<MyHomePage> {
       child: TransactionList(
           transactions: _userTransactions, deleteTrx: _deleteTransaction),
     );
+
     final _PAGE_BODY = SafeArea(
         child: SingleChildScrollView(
             child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (_IS_LAND_SCAPE)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                'Show chart',
-                style: Theme.of(context).textTheme.headline6,
-              ),
-              Switch.adaptive(
-                activeColor: Theme.of(context).accentColor,
-                value: _showChart,
-                onChanged: (val) {
-                  setState(() {
-                    _showChart = val;
-                  });
-                },
-              )
-            ],
-          ),
+          ..._buildLandscapeContent(_MEDIA_QUERY, _APP_BAR, _TRX_LIST_WIDGET),
         if (!_IS_LAND_SCAPE)
-          Container(
-              height: (_MEDIA_QUERY.size.height -
-                      _APP_BAR.preferredSize.height -
-                      _MEDIA_QUERY.padding.top) *
-                  .3,
-              child: Chart(recentTransactions: _recentTransactions)),
-        if (!_IS_LAND_SCAPE) _TRX_LIST_WIDGET,
-        if (_IS_LAND_SCAPE)
-          _showChart
-              ? Container(
-                  height: (_MEDIA_QUERY.size.height -
-                          _APP_BAR.preferredSize.height -
-                          _MEDIA_QUERY.padding.top) *
-                      .7,
-                  child: Chart(recentTransactions: _recentTransactions))
-              : _TRX_LIST_WIDGET
+          ..._buildPortraitContent(_MEDIA_QUERY, _APP_BAR, _TRX_LIST_WIDGET)
       ],
     )));
 
